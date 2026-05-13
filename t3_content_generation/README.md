@@ -18,12 +18,12 @@ Open [t1/image_analysis.py](t1/image_analysis.py) and implement the TODO:
 
 #### GPT Image 1
 Open [t2/gpt_image_generation.py](t2/gpt_image_generation.py) and implement the TODO:
-- Generate an image of `"Smiling catdog"` using `gpt-image-1` via `/v1/images/generations`
+- Generate an image of `"Smiling catdog"` using `gpt-image-2` via `/v1/images/generations`
 - Decode the base64 response and save the image locally
 
 #### Image Edit
 Open [t2/gpt_image_edit.py](t2/gpt_image_edit.py) and implement the TODO:
-- Edit the local `logo.png` using `gpt-image-1` via `/v1/images/edits`
+- Edit the local `logo.png` using `gpt-image-2` via `/v1/images/edits`
 - Send the request as `multipart/form-data` (image file + prompt), not JSON
 - Use the prompt to add some "magic" to the logo — sparkles, glow, mystical aura, etc.
 - Decode the base64 response and save the edited image locally
