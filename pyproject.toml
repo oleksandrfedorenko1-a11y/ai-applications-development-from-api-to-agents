@@ -1,0 +1,28 @@
+[project]
+name = "ai-applications-development-from-api-to-agents"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiohttp==3.13.3",
+    "anthropic>=0.84.0",
+    "faiss-cpu==1.13.2",
+    "fastapi==0.135.1",
+    "fastmcp==3.0.2",
+    "google-genai==1.65.0",
+    "httpx==0.28.1",
+    "langchain-chroma==1.1.0",
+    "langchain-community==0.4.1",
+    "langchain-openai==1.1.10",
+    "openai==2.24.0",
+    "presidio-analyzer==2.2.360",
+    "presidio-anonymizer==2.2.360",
+    "protobuf==7.34.0",
+    "psycopg2-binary>=2.9.11",
+    "pydantic==2.12.5",
+    "python-jose==3.5.0",
+    "pyyaml>=6.0",
+    "redis[hiredis]==7.1.1",
+    "requests==2.32.5",
+]
