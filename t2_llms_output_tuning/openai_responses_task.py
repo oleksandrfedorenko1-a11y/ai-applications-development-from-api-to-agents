@@ -24,7 +24,7 @@ from t2_llms_output_tuning._main import run
 # TODO 4: text — structured output format (replaces "response_format" from Chat Completions)
 #  Uses text={"format": {...}} instead of response_format={...}
 #  Query: "List 3 programming languages with their year of creation"
-#  Try: text={"format": {"type": "json_schema", "name": "languages", "strict": True, "schema": {"type": "object", "properties": {"languages": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "year": {"type": "integer"}}, "required": ["name", "year"], "additionalProperties": False}}}, "required": ["languages"], "additionalProperties": False}}}
+#  Try: text=LANGUAGES_SCHEMA_RESPONSES
 
 # TODO 5: truncation — controls how long contexts are handled. Default: "disabled"
 #  "auto" = drops older input messages to fit context window
@@ -39,9 +39,42 @@ from t2_llms_output_tuning._main import run
 #  Query: "How many r's are in the word strawberry?"
 #  Try: reasoning={"effort": "high"} vs reasoning={"effort": "low"}
 
+LANGUAGES_SCHEMA_RESPONSES = {
+    "format": {
+        "type": "json_schema",
+        "name": "languages",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "year": {"type": "integer"}
+                        },
+                        "required": ["name", "year"],
+                        "additionalProperties": False
+                    }
+                }
+            },
+            "required": ["languages"],
+            "additionalProperties": False
+        }
+    }
+}
+
 run(
     client=OpenAIResponsesClient('gpt-5.2'),
     print_request=True, # Switch to False if you do not want to see the request in console
     print_only_content=False, # Switch to True if you want to see only content from response
-
+    # temperature=0.0,              # TODO 1: deterministic (try 0.0 vs 2.0)
+    # top_p=0.1,                    # TODO 2: focused output (try 0.1 vs 0.9)
+    # max_output_tokens=50,         # TODO 3: token limit (try 50 vs 2048)
+    # text=LANGUAGES_SCHEMA_RESPONSES,  # TODO 4: structured JSON output
+    # truncation="auto",            # TODO 5: drop old messages for long contexts
+    # metadata={"project": "demo", "user": "student-1"},  # TODO 6: key-value tracking
+    reasoning={"effort": "low"},    # TODO 7: thinking effort (low/high)
 )

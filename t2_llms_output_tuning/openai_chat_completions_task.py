@@ -30,7 +30,7 @@ from t2_llms_output_tuning._main import run
 # TODO 6: response_format — enforce structured output format
 #  "text" (default) or "json_schema" with a schema definition
 #  Query: "List 3 programming languages with their year of creation"
-#  Try: response_format={"type": "json_schema", "json_schema": {"name": "languages", "strict": True, "schema": {"type": "object", "properties": {"languages": {"type": "array", "items": {"type": "object", "properties": {"name": {"type": "string"}, "year": {"type": "integer"}}, "required": ["name", "year"], "additionalProperties": False}}}, "required": ["languages"], "additionalProperties": False}}}
+#  Try: response_format=LANGUAGES_SCHEMA
 
 # TODO 7: frequency_penalty — penalizes tokens based on how often they appeared so far. Range: -2.0 to 2.0, default: 0
 #  ⚠️ Note: Will work for models like gpt-4o
@@ -55,10 +55,45 @@ from t2_llms_output_tuning._main import run
 #  Query: "How many r's are in the word strawberry?"
 #  Try: reasoning_effort="low" vs reasoning_effort="high"
 
+LANGUAGES_SCHEMA = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "languages",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "languages": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string"},
+                            "year": {"type": "integer"}
+                        },
+                        "required": ["name", "year"],
+                        "additionalProperties": False
+                    }
+                }
+            },
+            "required": ["languages"],
+            "additionalProperties": False
+        }
+    }
+}
+
 run(
     client=OpenAIChatCompletionsClient(model_name='gpt-5.2'),
     print_request=True, # Switch to False if you do not want to see the request in console
     print_only_content=False, # Switch to True if you want to see only content from response
-
-
+    # n=3,                          # TODO 1: multiple completions
+    # temperature=0.0,              # TODO 2: deterministic (try 0.0 vs 2.0)
+    # top_p=0.1,                    # TODO 3: focused output (try 0.1 vs 0.9)
+    # max_completion_tokens=50,     # TODO 4: token limit for gpt-5+ (try 50 vs 2048)
+    # stop=["5"],                   # TODO 5: stop string — gpt-4o only
+    # response_format=LANGUAGES_SCHEMA,  # TODO 6: JSON schema output
+    # frequency_penalty=1.5,        # TODO 7: reduce repetition — gpt-4o only
+    # presence_penalty=1.5,         # TODO 8: encourage new topics — gpt-4o only
+    # seed=42,                      # TODO 9: deterministic output — gpt-4o only
+    reasoning_effort="low",         # TODO 10: thinking level (low/medium/high)
 )
