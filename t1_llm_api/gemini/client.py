@@ -28,10 +28,8 @@ class GeminiAIClient(AIClient):
             api_key (str): The Google API key for authentication.
             system_prompt (str): The system instruction to guide the model's behavior.
         """
-        #TODO:
-        # Call to __init__ of super class
-        # Add genai.Client https://ai.google.dev/gemini-api/docs/text-generation#python_4
-        raise NotImplementedError
+        super().__init__(endpoint, model_name, api_key, system_prompt)
+        self._genai_client = genai.Client(api_key=self._api_key)
 
     def response(self, messages: list[Message], **kwargs) -> Message:
         """
@@ -48,12 +46,19 @@ class GeminiAIClient(AIClient):
             Gemini uses 'system_instruction' parameter for system-level guidance.
             The response is printed to stdout before being returned.
         """
-        #TODO:
-        # - Add System prompt
-        # - Call client
-        # - Print response to console
-        # - Return ASSISTANT message
-        raise NotImplementedError
+        contents = [
+            {"role": "user" if msg.role == Role.USER else "model",
+             "parts": [{"text": msg.content}]}
+            for msg in messages
+        ]
+        resp = self._genai_client.models.generate_content(
+            model=self._model_name,
+            contents=contents,
+            config=types.GenerateContentConfig(system_instruction=self._system_prompt),
+        )
+        content = resp.text
+        print(content)
+        return Message(role=Role.ASSISTANT, content=content)
 
     async def stream_response(self, messages: list[Message], **kwargs) -> Message:
         """
@@ -73,10 +78,19 @@ class GeminiAIClient(AIClient):
             Uses the async streaming interface provided by the Gemini SDK.
             Each chunk's text is printed to stdout as it arrives.
         """
-        #TODO:
-        # - Add System prompt
-        # - Call client with streaming mode
-        # - Handle stream with chunks
-        # - Print response to console
-        # - Return ASSISTANT message
-        raise NotImplementedError
+        contents = [
+            {"role": "user" if msg.role == Role.USER else "model",
+             "parts": [{"text": msg.content}]}
+            for msg in messages
+        ]
+        full_content = ""
+        async for chunk in self._genai_client.aio.models.generate_content_stream(
+            model=self._model_name,
+            contents=contents,
+            config=types.GenerateContentConfig(system_instruction=self._system_prompt),
+        ):
+            if chunk.text:
+                print(chunk.text, end="", flush=True)
+                full_content += chunk.text
+        print()
+        return Message(role=Role.ASSISTANT, content=full_content)

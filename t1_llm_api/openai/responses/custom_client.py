@@ -35,15 +35,16 @@ class CustomOpenAIResponsesClient(BaseOpenAIClient):
             Uses the Responses API format with 'instructions' and 'input' parameters.
             The response is printed to stdout before being returned.
         """
-        #TODO:
-        # https://developers.openai.com/api/docs/guides/text?lang=curl
-        # - Prepare headers with authorization and content type
-        # - Prepare input messages
-        # - Execute post request to AI API (use `requests`)
-        # - Parse response
-        # - Print response to console
-        # - Return ASSISTANT message
-        raise NotImplementedError
+        headers = {"Authorization": self._api_key, "Content-Type": "application/json"}
+        body = {
+            "model": self._model_name,
+            "instructions": self._system_prompt,
+            "input": [msg.to_dict() for msg in messages],
+        }
+        resp = requests.post(self._endpoint, headers=headers, json=body)
+        content = resp.json()["output"][0]["content"][0]["text"]
+        print(content)
+        return Message(role=Role.ASSISTANT, content=content)
 
     async def stream_response(self, messages: list[Message], **kwargs) -> Message:
         """
@@ -64,13 +65,26 @@ class CustomOpenAIResponsesClient(BaseOpenAIClient):
             Listens for 'response.output_text.delta' events to build the response.
             Each line with "event: " specifies the event type, followed by "data: " with the payload.
         """
-        #TODO:
-        # https://developers.openai.com/api/docs/guides/text?lang=curl
-        # - Prepare headers with authorization and content type
-        # - Prepare input messages
-        # - Execute post request to AI API (use `aiohttp`)
-        # - Handle stream with events
-        # - Parse response
-        # - Print chunks to console
-        # - Return ASSISTANT message
-        raise NotImplementedError
+        headers = {"Authorization": self._api_key, "Content-Type": "application/json"}
+        body = {
+            "model": self._model_name,
+            "instructions": self._system_prompt,
+            "input": [msg.to_dict() for msg in messages],
+            "stream": True,
+        }
+        full_content = ""
+        current_event = None
+        async with aiohttp.ClientSession() as session:
+            async with session.post(self._endpoint, headers=headers, json=body) as resp:
+                async for line in resp.content:
+                    line = line.decode("utf-8").strip()
+                    if line.startswith("event: "):
+                        current_event = line[7:]
+                    elif line.startswith("data: ") and current_event == "response.output_text.delta":
+                        data = json.loads(line[6:])
+                        delta = data.get("delta", "")
+                        if delta:
+                            print(delta, end="", flush=True)
+                            full_content += delta
+        print()
+        return Message(role=Role.ASSISTANT, content=full_content)

@@ -29,11 +29,10 @@ class OpenAIResponsesClient(BaseOpenAIClient):
             system_prompt (str): The instruction to guide the model's behavior.
             api_key (str): The OpenAI API key for authentication.
         """
-        #TODO:
-        # Call to __init__ of super class
-        # Add OpenAI and AsyncOpenAI clients https://github.com/openai/openai-python?tab=readme-ov-file#usage
-        # (In readme you can find samples with both of these clients)
-        raise NotImplementedError
+        super().__init__(endpoint, model_name, system_prompt, api_key)
+        raw_key = self._api_key.removeprefix("Bearer ")
+        self._client = OpenAI(api_key=raw_key)
+        self._async_client = AsyncOpenAI(api_key=raw_key)
 
     def response(self, messages: list[Message], **kwargs) -> Message:
         """
@@ -50,12 +49,14 @@ class OpenAIResponsesClient(BaseOpenAIClient):
             Uses the Responses API format with 'instructions' and 'input' parameters.
             The response is printed to stdout before being returned.
         """
-        #TODO:
-        # - Prepare input messages
-        # - Call client
-        # - Print response to console
-        # - Return ASSISTANT message
-        raise NotImplementedError
+        resp = self._client.responses.create(
+            model=self._model_name,
+            instructions=self._system_prompt,
+            input=[msg.to_dict() for msg in messages],
+        )
+        content = resp.output_text
+        print(content)
+        return Message(role=Role.ASSISTANT, content=content)
 
     async def stream_response(self, messages: list[Message], **kwargs) -> Message:
         """
@@ -75,10 +76,15 @@ class OpenAIResponsesClient(BaseOpenAIClient):
             Uses the Responses API streaming format with event types.
             Listens for 'response.output_text.delta' events to build the response.
         """
-        #TODO:
-        # - Prepare input messages
-        # - Call client with streaming mode
-        # - Handle stream with events
-        # - Print response to console
-        # - Return ASSISTANT message
-        raise NotImplementedError
+        full_content = ""
+        async with self._async_client.responses.stream(
+            model=self._model_name,
+            instructions=self._system_prompt,
+            input=[msg.to_dict() for msg in messages],
+        ) as stream:
+            async for event in stream:
+                if event.type == "response.output_text.delta":
+                    print(event.delta, end="", flush=True)
+                    full_content += event.delta
+        print()
+        return Message(role=Role.ASSISTANT, content=full_content)

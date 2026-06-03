@@ -36,15 +36,21 @@ class CustomGeminiAIClient(AIClient):
             Uses 'x-goog-api-key' header for authentication.
             Response candidates contain content parts that are concatenated.
         """
-        #TODO:
-        # https://ai.google.dev/gemini-api/docs/text-generation
-        # - Prepare headers with api key and content type
-        # - Add System prompt
-        # - Execute post request to AI API (use `requests`)
-        # - Parse response
-        # - Print response to console
-        # - Return ASSISTANT message
-        raise NotImplementedError
+        headers = {"x-goog-api-key": self._api_key, "Content-Type": "application/json"}
+        contents = [
+            {"role": "user" if msg.role == Role.USER else "model",
+             "parts": [{"text": msg.content}]}
+            for msg in messages
+        ]
+        body = {
+            "contents": contents,
+            "systemInstruction": {"parts": [{"text": self._system_prompt}]},
+        }
+        url = f"{self._endpoint}/{self._model_name}:generateContent"
+        resp = requests.post(url, headers=headers, json=body)
+        content = resp.json()["candidates"][0]["content"]["parts"][0]["text"]
+        print(content)
+        return Message(role=Role.ASSISTANT, content=content)
 
     async def stream_response(self, messages: list[Message], **kwargs) -> Message:
         """
@@ -66,13 +72,31 @@ class CustomGeminiAIClient(AIClient):
             Each SSE chunk contains candidates with content parts.
             Each text chunk is printed to stdout as it arrives.
         """
-        #TODO:
-        # https://ai.google.dev/gemini-api/docs/text-generation
-        # - Prepare headers with api key and content type
-        # - Add System prompt
-        # - Execute post request to AI API (use `aiohttp`)
-        # - Handle stream with chunks
-        # - Parse response
-        # - Print chunks to console
-        # - Return ASSISTANT message
-        raise NotImplementedError
+        headers = {"x-goog-api-key": self._api_key, "Content-Type": "application/json"}
+        contents = [
+            {"role": "user" if msg.role == Role.USER else "model",
+             "parts": [{"text": msg.content}]}
+            for msg in messages
+        ]
+        body = {
+            "contents": contents,
+            "systemInstruction": {"parts": [{"text": self._system_prompt}]},
+        }
+        url = f"{self._endpoint}/{self._model_name}:streamGenerateContent?alt=sse"
+        full_content = ""
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, headers=headers, json=body) as resp:
+                async for line in resp.content:
+                    line = line.decode("utf-8").strip()
+                    if not line.startswith("data: "):
+                        continue
+                    data = line[6:]
+                    try:
+                        chunk = json.loads(data)
+                        text = chunk["candidates"][0]["content"]["parts"][0]["text"]
+                        print(text, end="", flush=True)
+                        full_content += text
+                    except (json.JSONDecodeError, KeyError):
+                        continue
+        print()
+        return Message(role=Role.ASSISTANT, content=full_content)

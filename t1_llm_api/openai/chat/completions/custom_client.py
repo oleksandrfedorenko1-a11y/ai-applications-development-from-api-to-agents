@@ -35,15 +35,16 @@ class CustomOpenAIClient(BaseOpenAIClient):
             The system prompt is automatically prepended to the messages.
             The response is printed to stdout before being returned.
         """
-        #TODO:
-        # https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create
-        # - Prepare headers with authorization and content type
-        # - Prepare message history with System prompt
-        # - Execute post request to AI API (use `requests`)
-        # - Parse response
-        # - Print response to console
-        # - Return ASSISTANT message
-        raise NotImplementedError
+        headers = {"Authorization": self._api_key, "Content-Type": "application/json"}
+        body = {
+            "model": self._model_name,
+            "messages": [{"role": "system", "content": self._system_prompt}]
+                         + [msg.to_dict() for msg in messages],
+        }
+        resp = requests.post(self._endpoint, headers=headers, json=body)
+        content = resp.json()["choices"][0]["message"]["content"]
+        print(content)
+        return Message(role=Role.ASSISTANT, content=content)
 
     async def stream_response(self, messages: list[Message], **kwargs) -> Message:
         """
@@ -64,13 +65,27 @@ class CustomOpenAIClient(BaseOpenAIClient):
             Each token is printed to stdout as it arrives.
             Uses Server-Sent Events (SSE) format where each line starts with "data: ".
         """
-        #TODO:
-        # https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create (Streaming tab)
-        # - Prepare headers with authorization and content type
-        # - Prepare message history with System prompt
-        # - Execute post request to AI API (use `aihttp`)
-        # - Handle stream with chunks
-        # - Parse response
-        # - Print chunks to console
-        # - Return ASSISTANT message
-        raise NotImplementedError
+        headers = {"Authorization": self._api_key, "Content-Type": "application/json"}
+        body = {
+            "model": self._model_name,
+            "messages": [{"role": "system", "content": self._system_prompt}]
+                         + [msg.to_dict() for msg in messages],
+            "stream": True,
+        }
+        full_content = ""
+        async with aiohttp.ClientSession() as session:
+            async with session.post(self._endpoint, headers=headers, json=body) as resp:
+                async for line in resp.content:
+                    line = line.decode("utf-8").strip()
+                    if not line.startswith("data: "):
+                        continue
+                    data = line[6:]
+                    if data == "[DONE]":
+                        break
+                    chunk = json.loads(data)
+                    delta = chunk["choices"][0]["delta"].get("content", "")
+                    if delta:
+                        print(delta, end="", flush=True)
+                        full_content += delta
+        print()
+        return Message(role=Role.ASSISTANT, content=full_content)
