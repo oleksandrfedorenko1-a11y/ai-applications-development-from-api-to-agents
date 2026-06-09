@@ -1,18 +1,20 @@
-import json
+import base64
+from pathlib import Path
 
-import requests
-
-from commons.constants import OPENAI_API_KEY, OPENAI_HOST
+from openai import AzureOpenAI
 
 
 # https://developers.openai.com/api/docs/guides/speech-to-text
 
-#TODO:
-# You need to transcribe 'audio_sample.mp3':
-#   - Create Client that will go to transcriptions OpenAI API
-#   - Call API and provide file (pay attention that you work with 'multipart/form-data')
-#   - Get response with transcription
-# ---
-# Hints:
-#   - Use /v1/audio/transcriptions endpoint
-#   - Use whisper-1 or gpt-4o-transcribe model
+client = AzureOpenAI()
+audio_path = Path(__file__).parent / "audio_sample.mp3"
+b64_audio = base64.b64encode(audio_path.read_bytes()).decode()
+
+completion = client.chat.completions.create(
+    model="gpt-audio-mini-2025-10-06",
+    messages=[
+        {"role": "system", "content": "Transcribe the audio exactly as spoken, word for word. Output only the transcription, nothing else."},
+        {"role": "user", "content": [{"type": "input_audio", "input_audio": {"data": b64_audio, "format": "mp3"}}]},
+    ]
+)
+print(completion.choices[0].message)

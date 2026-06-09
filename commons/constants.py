@@ -13,7 +13,10 @@ import os
 DEFAULT_SYSTEM_PROMPT = "You are an assistant who answers concisely and informatively."
 
 # OpenAI API configuration
-OPENAI_HOST = "https://api.openai.com"
+# Read from OPENAI_BASE_URL if set (OpenAI SDK convention includes /v1; strip it so tasks can
+# construct full paths as OPENAI_HOST + "/v1/...")
+_openai_base_url = os.getenv('OPENAI_BASE_URL', '')
+OPENAI_HOST = _openai_base_url.rstrip('/').removesuffix('/v1') if _openai_base_url else "https://api.openai.com"
 OPENAI_CHAT_COMPLETIONS_ENDPOINT = f"{OPENAI_HOST}/v1/chat/completions"
 OPENAI_RESPONSES_ENDPOINT = f"{OPENAI_HOST}/v1/responses"
 OPENAI_EMBEDDINGS_ENDPOINT = f"{OPENAI_HOST}/v1/embeddings"

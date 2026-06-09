@@ -1,25 +1,27 @@
 import base64
-import json
 from datetime import datetime
+from pathlib import Path
 
-import requests
-
-from commons.constants import OPENAI_API_KEY, OPENAI_HOST
+from openai import AzureOpenAI
 
 
 # https://developers.openai.com/api/docs/guides/audio#add-audio-to-your-existing-application
 
-#TODO:
-# You need to generate answer in audio format based on the audio message:
-#   - Create Client that is similar with OpenAIClients but extracts from message audio (instead of content)
-#   - Call API
-#   - Get response as base64 content, decode and save as .mp3 file
-# ---
-# Hints:
-#   - Use /v1/chat/completions endpoint
-#   - Use gpt-4o-audio-preview model
-#   - Use modalities=["text", "audio"]
-#   - Use audio={"voice": "ballad", "format": "mp3"}
-#   - Use similar method to encode audio as you have done for images encoding
+client = AzureOpenAI()
+audio_path = Path(__file__).parent / "question.mp3"
+b64_audio = base64.b64encode(audio_path.read_bytes()).decode()
 
+completion = client.chat.completions.create(
+    model="gpt-audio-mini-2025-10-06",
+    modalities=["text", "audio"],
+    audio={"voice": "alloy", "format": "wav"},
+    messages=[{
+        "role": "user",
+        "content": [{"type": "input_audio", "input_audio": {"data": b64_audio, "format": "mp3"}}]
+    }]
+)
 
+wav_bytes = base64.b64decode(completion.choices[0].message.audio.data)
+filename = Path(__file__).parent / f"answer_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
+filename.write_bytes(wav_bytes)
+print(f"Saved: {filename}")
